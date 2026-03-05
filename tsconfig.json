@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "types": ["node"],
+
+    "paths": {
+      "@nff/shared/*": ["packages/shared/*"],
+      "@nff/engine/*": ["packages/engine/*"],
+      "@nff/nodes/*": ["packages/nodes/*"],
+      "@nff/db/*": ["packages/db/*"]
+    }
+  }
+}
