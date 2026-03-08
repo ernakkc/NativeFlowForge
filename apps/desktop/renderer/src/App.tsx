@@ -6,9 +6,15 @@ import '@xyflow/react/dist/style.css';
 import TerminalNode from './canvas/nodes/TerminalNode';
 import useWorkflowStore from './store/workflow.store'; 
 
+
+
+// packages/shared/types.ts  TİPLERİ VE INTERFACELERİ BU DOSYADA TANIMLADIK ORADAN İÇERİ AKTAR
 const nodeTypes = {
   terminal: TerminalNode,
 };
+//
+
+
 
 function App() {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, getWorkflowJSON } = useWorkflowStore();
@@ -16,7 +22,21 @@ function App() {
   const handleExportJSON = () => {
     const workflowData = getWorkflowJSON();
     console.log("İSTENEN JSON ÇIKTISI:", JSON.stringify(workflowData, null, 2));
-    alert("JSON çıktısı başarıyla alındı! Konsoldan görebilirsin.");
+
+    // Browser-compatible dosya indirme
+    const jsonString = JSON.stringify(workflowData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'workflow.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert("JSON çıktısı başarıyla indirildi!");
   };
 
   return (
