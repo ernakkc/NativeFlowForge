@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { INodePlugin, NodeInputs } from "../shared/types";
+import type { INodePlugin, NodeInputs } from "../shared/types";
 
 export interface TerminalCallbacks {
     onStdout?: (data: string) => void;
@@ -12,7 +12,7 @@ export class Terminal implements INodePlugin {
     name = "Terminal";
     description = "Runs shell commands and captures their output.";
 
-    execute(data: any, inputs: NodeInputs): Promise<any> {
+    execute(data: any, _inputs: NodeInputs): Promise<any> {
         return new Promise((resolve, reject) => {
             const command = data.command;
             if (!command) {
