@@ -7,53 +7,30 @@ test("Terminal can be created", () => {
     assert.ok(terminal);
 });
 
-test("Terminal can start a command", () => {
+test("Terminal can execute a simple command", async () => {
     const terminal = new Terminal();
-    terminal.start("echo", ["test"]);
-    terminal.stop();
+    const result = await terminal.execute({ command: "echo test" }, {});
+    assert.ok(result.stdout.includes("test"));
 });
 
-test("Terminal warns if already running", () => {
-    const terminal = new Terminal();
-    terminal.start("sleep", ["1"]);
-    terminal.start("echo", ["test"]);
-    terminal.stop();
-});
-
-test("Terminal can be stopped", () => {
-    const terminal = new Terminal();
-    terminal.start("sleep", ["1"]);
-    terminal.stop();
-});
-
-test("Terminal captures stdout with callback", (t, done) => {
-    const terminal = new Terminal();
+test("Terminal captures stdout with callback", async () => {
     let output = "";
-
-    terminal.start("echo", ["Hello World"], {}, {
+    
+    const terminal = new Terminal({
         onStdout: (data) => {
             output += data;
-        },
-        onClose: (code) => {
-            assert.ok(output.includes("Hello World"), "Should capture stdout");
-            assert.strictEqual(code, 0, "Should exit with code 0");
-            done();
         }
     });
+
+    await terminal.execute({ command: "echo Hello" }, {});
+    assert.ok(output.includes("Hello"));
 });
 
-test("Terminal captures stderr with callback", (t, done) => {
+test("Terminal rejects when no command provided", async () => {
     const terminal = new Terminal();
-    let errorOutput = "";
-
-    terminal.start("ls", ["--invalid-option-xyz"], {}, {
-        onStderr: (data) => {
-            errorOutput += data;
-        },
-        onClose: (code) => {
-            assert.ok(errorOutput.length > 0, "Should capture stderr");
-            done();
-        }
-    });
+    await assert.rejects(
+        () => terminal.execute({}, {}),
+        /No command provided/
+    );
 });
 

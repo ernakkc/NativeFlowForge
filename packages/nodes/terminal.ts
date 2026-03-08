@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { INodePlugin, NodeInputs } from "../shared/types";
 
 export interface TerminalCallbacks {
     onStdout?: (data: string) => void;
@@ -6,54 +7,56 @@ export interface TerminalCallbacks {
     onClose?: (code: number | null) => void;
 }
 
-export class Terminal {
-    private process: ReturnType<typeof spawn> | null = null;
-    private callbacks: TerminalCallbacks = {};
+export class Terminal implements INodePlugin {
+    type = "terminal";
+    name = "Terminal";
+    description = "Runs shell commands and captures their output.";
 
-    start(
-        command: string,
-        args: string[] = [],
-        options: Record<string, any> = {},
-        callbacks?: TerminalCallbacks
-    ) {
-        if (this.process) return;
+    execute(data: any, inputs: NodeInputs): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const command = data.command;
+            if (!command) {
+                return reject(new Error("No command provided"));
+            }
 
-        this.callbacks = callbacks || {};
-        this.process = spawn(command, args, { shell: true, ...options });
+            const child = spawn(command, { shell: true });
 
-        this.process.stdout?.on("data", (data) => {
-            const output = data.toString();
-            this.callbacks.onStdout?.(output);
-        });
+            let stdoutData = "";
+            let stderrData = "";
 
-        this.process.stderr?.on("data", (data) => {
-            const output = data.toString();
-            this.callbacks.onStderr?.(output);
-        });
+            child.stdout.on("data", (data) => {
+                const text = data.toString();
+                stdoutData += text;
+                if (this.callbacks?.onStdout) {
+                    this.callbacks.onStdout(text);
+                }
+            });
 
-        this.process.on("close", (code) => {
-            this.callbacks.onClose?.(code);
-            this.process = null;
+            child.stderr.on("data", (data) => {
+                const text = data.toString();
+                stderrData += text;
+                if (this.callbacks?.onStderr) {
+                    this.callbacks.onStderr(text);
+                }
+            });
+
+            child.on("close", (code) => {
+                if (this.callbacks?.onClose) {
+                    this.callbacks.onClose(code);
+                }
+                if (code === 0) {
+                    resolve({ stdout: stdoutData });
+                } else {
+                    reject(new Error(`Command failed with code ${code}: ${stderrData}`));
+                }
+            });
+
+            child.on("error", (err) => {
+                reject(err);
+            });
         });
     }
+    
+    constructor(private callbacks?: TerminalCallbacks) {}
 
-    stop() {
-        if (!this.process) return;
-        this.process.kill();
-        this.process = null;
-    }
 }
-
-
-let terminal = new Terminal();
-terminal.start("echo", ["Hello World"], {}, {
-    onStdout: (data) => {
-        console.log("Captured stdout:", data);
-    },
-    onStderr: (data) => {
-        console.error("Captured stderr:", data);
-    },
-    onClose: (code) => {
-        console.log("Process closed with code:", code);
-    }
-});
