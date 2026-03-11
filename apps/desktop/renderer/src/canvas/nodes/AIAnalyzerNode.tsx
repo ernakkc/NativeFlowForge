@@ -1,4 +1,4 @@
-import { Handle, Position, useReactFlow } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import useWorkflowStore from '../../store/workflow.store';
 
 function AIAnalyzerNode({ id }: { id: string }) {

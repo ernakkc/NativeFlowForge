@@ -1,9 +1,8 @@
-import { Handle, Position, useReactFlow } from '@xyflow/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import useWorkflowStore from '../../store/workflow.store';
 
-function TerminalNode({ id }: { id: string }) {
-  const { removeNode } = useWorkflowStore();
-  const { getNode } = useReactFlow();
+function TerminalNode({ id, data }: NodeProps) {
+  const { removeNode, updateNodeData } = useWorkflowStore();
 
   const handleDelete = () => {
     removeNode(id);
@@ -42,8 +41,10 @@ function TerminalNode({ id }: { id: string }) {
       
       <div>
         <input 
-          type="text" 
-          placeholder="Komut gir (örn: ls -la)" 
+          type="text"
+          value={(data?.command as string) ?? ''}
+          placeholder="Komut gir (örn: ls -la)"
+          onChange={(e) => updateNodeData(id, { command: e.target.value })}
           style={{ 
             width: '90%', 
             background: '#161b22', 

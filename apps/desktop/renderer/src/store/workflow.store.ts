@@ -10,10 +10,11 @@ interface WorkflowState {
   onConnect: (connection: Connection) => void;
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
+  updateNodeData: (id: string, data: Record<string, unknown>) => void;
   getWorkflowJSON: () => { nodes: NFFNode[]; edges: NFFEdge[] }; 
 }
 
-const initialNodes: Node[] = []; // Ekranı başlangıçta bomboş sürekleyebilmek için
+const initialNodes: Node[] = [];
 
 const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialNodes,
@@ -23,11 +24,18 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
   onEdgesChange: (changes) => set({ edges: applyEdgeChanges(changes, get().edges) }),
   onConnect: (connection) => set({ edges: addEdge(connection, get().edges) }),
   
-  // Kutuyu hafızaya yazan yeni fonksiyonumuz
   addNode: (node) => set({ nodes: [...get().nodes, node] }),
 
   removeNode: (nodeId) => {
     set({ nodes: get().nodes.filter((n) => n.id !== nodeId) });
+  },
+
+  updateNodeData: (id, data) => {
+    set({
+      nodes: get().nodes.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+      )
+    });
   },
 
   getWorkflowJSON: () => {
