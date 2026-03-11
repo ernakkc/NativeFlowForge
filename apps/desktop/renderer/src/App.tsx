@@ -1,79 +1,94 @@
-import React from 'react';
-import { ReactFlow, Background, Controls, type NodeTypes } from '@xyflow/react';
+import React, { useRef, useCallback } from 'react';
+import { ReactFlow, Background, Controls, ReactFlowProvider, useReactFlow, type NodeTypes } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import TerminalNode from './canvas/nodes/TerminalNode';
+import AIAnalyzerNode from './canvas/nodes/AIAnalyzerNode';
 import useWorkflowStore from './store/workflow.store'; 
+import Sidebar from './components/Sidebar';
+import type { WorkflowDocument, NodeType } from '@nff/shared/types';
 
-// yazılan ana belge tipini çekiyoruz
-import type { WorkflowDocument } from '@nff/shared/types';
-
-// React Flow için Node tanımlaması (Tipini NodeTypes olarak belirttik)
 const nodeTypes: NodeTypes = {
   terminal: TerminalNode,
+  ai_analyzer: AIAnalyzerNode,
 };
 
-function App() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, getWorkflowJSON } = useWorkflowStore();
+function FlowCanvas() {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { screenToFlowPosition } = useReactFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, getWorkflowJSON, addNode } = useWorkflowStore();
 
   const handleExportJSON = () => {
-    // 1. Store'dan, motorun anlayacağı dildeki NFF Node ve Edge'leri alıyoruz
     const { nodes: nffNodes, edges: nffEdges } = getWorkflowJSON();
-
-    // 2.  (WorkflowDocument) %100 uyan o ana objeyi yaratıyoruz
     const workflowDocument: WorkflowDocument = {
-      id: `wf_${Date.now()}`, // Şimdilik id'yi rastgele zamana göre atadık
-      name: "My First NFF Workflow", 
-      description: "UI üzerinden oluşturulan ilk akıllı harita",
+      id: `wf_${Date.now()}`,
+      name: "NFF Drag & Drop Workflow", 
+      description: "UI üzerinden oluşturuldu",
       nodes: nffNodes,
       edges: nffEdges,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
 
-    console.log("🔥 İSTENEN MOTOR ÇIKTISI:", workflowDocument);
-
-    // 3.  Browser-compatible indirme kodu
-    const jsonString = JSON.stringify(workflowDocument, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    console.log("🔥 MOTOR ÇIKTISI:", workflowDocument);
+    const blob = new Blob([JSON.stringify(workflowDocument, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'nff_workflow.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    link.href = url; link.download = 'nff_workflow.json';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
   };
 
-  return (
-    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#1e1e1e', position: 'relative' }}>
-      
-      <button 
-        onClick={handleExportJSON}
-        style={{
-          position: 'absolute', top: 20, right: 20, zIndex: 10,
-          padding: '10px 20px', background: '#00ff00', color: '#000',
-          border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer'
-        }}
-      >
-        Export Workflow
-      </button>
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
 
-      <ReactFlow 
-        nodes={nodes} 
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes} 
-      >
-        <Background color="#555" gap={16} />
-        <Controls />
-      </ReactFlow>
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const type = event.dataTransfer.getData('application/reactflow') as NodeType;
+    if (!type) return;
+
+    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    
+    // ID formatı
+    const newNodeId = `${type}_${Date.now()}`;
+
+    const newNode = {
+      id: newNodeId,
+      type,
+      position,
+      data: { command: type === 'terminal' ? 'ls -la' : '' },
+    };
+
+    addNode(newNode);
+  }, [screenToFlowPosition, addNode]);
+
+  return (
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#1e1e1e' }}>
+      <Sidebar />
+      <div className="reactflow-wrapper" ref={reactFlowWrapper} style={{ flexGrow: 1, position: 'relative' }}>
+        <button 
+          onClick={handleExportJSON}
+          style={{ position: 'absolute', top: 20, right: 20, zIndex: 10, padding: '10px 20px', background: '#00ff00', color: '#000', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}
+        >
+          Export JSON
+        </button>
+        <ReactFlow 
+          nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} nodeTypes={nodeTypes}
+          onDrop={onDrop} onDragOver={onDragOver} fitView
+        >
+          <Background color="#555" gap={16} />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ReactFlowProvider>
+      <FlowCanvas />
+    </ReactFlowProvider>
+  );
+}

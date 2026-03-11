@@ -1,80 +1,54 @@
 import { create } from 'zustand';
-import { 
-  addEdge, 
-  applyNodeChanges, 
-  applyEdgeChanges,
-  type Node, 
-  type Edge, 
-  type Connection, 
-  type NodeChange, 
-  type EdgeChange 
-} from '@xyflow/react';
-
-// KISAYOLUMUZ ÇALIŞIYOR: yazılan tipleri içeri alıyoruz
+import { addEdge, applyNodeChanges, applyEdgeChanges, type Node, type Edge, type Connection, type NodeChange, type EdgeChange } from '@xyflow/react';
 import type { NFFNode, NFFEdge } from '@nff/shared/types';
 
-// ZUSTAND HAFIZAMIZIN SÖZLÜĞÜ (TypeScript'e söz veriyoruz)
 interface WorkflowState {
   nodes: Node[];
   edges: Edge[];
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
-  // Motorun beklediği node ve edge tiplerini döneceğini taahhüt ediyoruz
+  addNode: (node: Node) => void;
+  removeNode: (nodeId: string) => void;
   getWorkflowJSON: () => { nodes: NFFNode[]; edges: NFFEdge[] }; 
 }
 
-const initialNodes: Node[] = [
-  { 
-    id: '1', 
-    type: 'terminal', 
-    position: { x: 300, y: 200 }, 
-    data: { command: 'ls -la' } // NFFNode yapısına uygun bir data
-  }
-];
+const initialNodes: Node[] = []; // Ekranı başlangıçta bomboş sürekleyebilmek için
 
-// 2. BEYİN
 const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialNodes,
   edges: [],
   
-  onNodesChange: (changes) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) });
-  },
+  onNodesChange: (changes) => set({ nodes: applyNodeChanges(changes, get().nodes) }),
+  onEdgesChange: (changes) => set({ edges: applyEdgeChanges(changes, get().edges) }),
+  onConnect: (connection) => set({ edges: addEdge(connection, get().edges) }),
   
-  onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges) });
-  },
-  
-  onConnect: (connection) => {
-    set({ edges: addEdge(connection, get().edges) });
+  // Kutuyu hafızaya yazan yeni fonksiyonumuz
+  addNode: (node) => set({ nodes: [...get().nodes, node] }),
+
+  removeNode: (nodeId) => {
+    set({ nodes: get().nodes.filter((n) => n.id !== nodeId) });
   },
 
-  // (Adapter Pattern)
   getWorkflowJSON: () => {
     const { nodes, edges } = get();
 
-    // React Flow düğümleri  NFFNode modeline çevrildi
-    const nffNodes: NFFNode[] = nodes.map((node) => ({
-      id: node.id,
-      type: node.type || 'unknown',
-      data: node.data,
-      position: node.position
+    const nffNodes: NFFNode[] = nodes.map((n) => ({
+      id: n.id,
+      type: n.type || 'unknown',
+      data: n.data,
+      position: n.position
     }));
 
-    // React Flow kenarları istenilen NFFEdge modeline çevrildi
-    const nffEdges: NFFEdge[] = edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      sourceHandle: edge.sourceHandle || undefined,
-      targetHandle: edge.targetHandle || undefined
+    const nffEdges: NFFEdge[] = edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle || undefined,
+      targetHandle: e.targetHandle || undefined
     }));
 
-    return {
-      nodes: nffNodes,
-      edges: nffEdges
-    };
+    return { nodes: nffNodes, edges: nffEdges };
   }
 }));
 
