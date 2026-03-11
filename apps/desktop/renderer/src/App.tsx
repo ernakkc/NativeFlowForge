@@ -1,42 +1,50 @@
-// @ts-nocheck
 import React from 'react';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import { ReactFlow, Background, Controls, type NodeTypes } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import TerminalNode from './canvas/nodes/TerminalNode';
 import useWorkflowStore from './store/workflow.store'; 
 
+// yazılan ana belge tipini çekiyoruz
+import type { WorkflowDocument } from '@nff/shared/types';
 
-
-// packages/shared/types.ts  TİPLERİ VE INTERFACELERİ BU DOSYADA TANIMLADIK ORADAN İÇERİ AKTAR
-const nodeTypes = {
+// React Flow için Node tanımlaması (Tipini NodeTypes olarak belirttik)
+const nodeTypes: NodeTypes = {
   terminal: TerminalNode,
 };
-//
-
-
 
 function App() {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, getWorkflowJSON } = useWorkflowStore();
 
   const handleExportJSON = () => {
-    const workflowData = getWorkflowJSON();
-    console.log("İSTENEN JSON ÇIKTISI:", JSON.stringify(workflowData, null, 2));
+    // 1. Store'dan, motorun anlayacağı dildeki NFF Node ve Edge'leri alıyoruz
+    const { nodes: nffNodes, edges: nffEdges } = getWorkflowJSON();
 
-    // Browser-compatible dosya indirme
-    const jsonString = JSON.stringify(workflowData, null, 2);
+    // 2.  (WorkflowDocument) %100 uyan o ana objeyi yaratıyoruz
+    const workflowDocument: WorkflowDocument = {
+      id: `wf_${Date.now()}`, // Şimdilik id'yi rastgele zamana göre atadık
+      name: "My First NFF Workflow", 
+      description: "UI üzerinden oluşturulan ilk akıllı harita",
+      nodes: nffNodes,
+      edges: nffEdges,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    console.log("🔥 İSTENEN MOTOR ÇIKTISI:", workflowDocument);
+
+    // 3.  Browser-compatible indirme kodu
+    const jsonString = JSON.stringify(workflowDocument, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'workflow.json';
+    link.download = 'nff_workflow.json';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
-    alert("JSON çıktısı başarıyla indirildi!");
   };
 
   return (
@@ -50,7 +58,7 @@ function App() {
           border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer'
         }}
       >
-        Export JSON
+        Export Workflow
       </button>
 
       <ReactFlow 
