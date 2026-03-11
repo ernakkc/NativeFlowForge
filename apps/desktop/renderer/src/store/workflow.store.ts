@@ -20,6 +20,7 @@ interface WorkflowState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
+  updateNodeData: (id: string, data: Record<string, unknown>) => void;
   // Motorun beklediği node ve edge tiplerini döneceğini taahhüt ediyoruz
   getWorkflowJSON: () => { nodes: NFFNode[]; edges: NFFEdge[] }; 
 }
@@ -48,6 +49,14 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
   
   onConnect: (connection) => {
     set({ edges: addEdge(connection, get().edges) });
+  },
+
+  updateNodeData: (id, data) => {
+    set({
+      nodes: get().nodes.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+      )
+    });
   },
 
   // (Adapter Pattern)
