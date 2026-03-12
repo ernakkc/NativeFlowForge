@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "ES2023", "DOM", "DOM.Iterable"],
@@ -26,10 +25,10 @@
     
     /* Path mappings */
     "paths": {
-      "@nff/shared/*": ["packages/shared/*"],
-      "@nff/engine/*": ["packages/engine/*"],
-      "@nff/nodes/*": ["packages/nodes/*"],
-      "@nff/db/*": ["packages/db/*"]
+      "@nff/shared/*": ["./packages/shared/*"],
+      "@nff/engine/*": ["./packages/engine/*"],
+      "@nff/nodes/*": ["./packages/nodes/*"],
+      "@nff/db/*": ["./packages/db/*"]
     }
   },
   "include": [
