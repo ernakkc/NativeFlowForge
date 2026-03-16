@@ -11,6 +11,7 @@ export class Terminal implements INodePlugin {
     type = "terminal";
     name = "Terminal";
     description = "Runs shell commands and captures their output.";
+    private callbacks?: TerminalCallbacks;
 
     execute(data: any, _inputs: NodeInputs): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -57,6 +58,8 @@ export class Terminal implements INodePlugin {
         });
     }
     
-    constructor(private callbacks?: TerminalCallbacks) {}
+    constructor(callbacks?: TerminalCallbacks) {
+        this.callbacks = callbacks;
+    }
 
 }
