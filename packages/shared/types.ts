@@ -3,7 +3,7 @@
 // ==========================================
 
 // İleride eklenebilecek node türleri (terminal ve ilerideki AI/Http planları için)
-export type NodeType = 'terminal' | 'http' | 'ai_analyzer' | 'ai_planner' | 'ai_runner';
+export type NodeType = 'terminal' | 'http' | 'ai_analyzer' | 'ai_planner' | 'ai_runner' | 'click_trigger';
 
 // React Flow ile %100 uyumlu ama ona bağımlı olmayan Node yapımız
 export interface NFFNode<TData = Record<string, any>> {
@@ -33,14 +33,18 @@ export interface WorkflowDocument {
   updatedAt: number;
 }
 
+export interface WorkflowGraphSnapshot {
+  nodes: NFFNode[];
+  edges: NFFEdge[];
+}
+
+export type TriggerType = 'click' | 'webhook' | 'schedule' | 'manual' | string;
+
 export type TriggerRunRequestDetail = {
   triggerNodeId: string;
-  triggerType: 'click';
+  triggerType: TriggerType;
   requestedAt: number;
-  workflow: {
-    nodes: unknown[];
-    edges: unknown[];
-  };
+  workflow: WorkflowGraphSnapshot;
 };
 
 export interface WorkflowRunRequest {
@@ -50,10 +54,13 @@ export interface WorkflowRunRequest {
 
 export interface WorkflowNodeRunResult {
   nodeId: string;
-  nodeType: string;
+  nodeType: NodeType | string;
   status: 'success' | 'failed' | 'skipped';
   output?: string;
+  data?: unknown;
   error?: string;
+  startTime?: number;
+  endTime?: number;
 }
 
 export type WorkflowRunResponse =

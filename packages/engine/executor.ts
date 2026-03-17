@@ -1,17 +1,50 @@
-import { getReachableNodeOrder } from './dag';
-import type { WorkflowDocument, WorkflowNodeRunResult, WorkflowRunResponse } from '../shared/types';
-import { Terminal } from '../nodes/terminal';
+import { buildExecutionPlan } from './dag';
+import type {
+  NodeInputs,
+  WorkflowDocument,
+  WorkflowNodeRunResult,
+  WorkflowRunResponse,
+} from '../shared/types';
+import { createDefaultNodePluginRegistry, type NodePluginRegistry } from '../nodes/registry';
+
+interface RunWorkflowOptions {
+  nodePluginRegistry?: NodePluginRegistry;
+}
+
+function toOutputText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'object' && 'stdout' in value) {
+    const maybeStdout = (value as { stdout?: unknown }).stdout;
+    return typeof maybeStdout === 'string' ? maybeStdout : String(maybeStdout ?? '');
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
 
 export async function runWorkflowFromTrigger(
   workflow: WorkflowDocument,
   triggerNodeId: string,
+  options: RunWorkflowOptions = {},
 ): Promise<WorkflowRunResponse> {
   try {
-    const orderedNodeIds = getReachableNodeOrder(triggerNodeId, workflow.nodes, workflow.edges);
+    const pluginRegistry = options.nodePluginRegistry ?? createDefaultNodePluginRegistry();
+    const executionPlan = buildExecutionPlan(triggerNodeId, workflow.nodes, workflow.edges);
     const nodeById = new Map(workflow.nodes.map((node) => [node.id, node]));
+    const outputByNodeId = new Map<string, unknown>();
     const results: WorkflowNodeRunResult[] = [];
 
-    for (const nodeId of orderedNodeIds) {
+    for (const nodeId of executionPlan.orderedNodeIds) {
       const node = nodeById.get(nodeId);
       if (!node) {
         results.push({
@@ -23,42 +56,52 @@ export async function runWorkflowFromTrigger(
         continue;
       }
 
-      if (node.type !== 'terminal') {
+      const plugin = pluginRegistry.get(String(node.type));
+      if (!plugin) {
         results.push({
           nodeId: node.id,
           nodeType: node.type,
           status: 'skipped',
+          error: `No plugin registered for node type: ${String(node.type)}`,
         });
         continue;
       }
 
-      const command = typeof node.data?.command === 'string' ? node.data.command.trim() : '';
-      if (!command) {
-        results.push({
-          nodeId: node.id,
-          nodeType: node.type,
-          status: 'failed',
-          error: 'Command cannot be empty',
-        });
-        continue;
+      const parentNodeIds = executionPlan.incomingByNode.get(node.id) ?? [];
+      const nodeInputs: NodeInputs = {};
+
+      for (const parentNodeId of parentNodeIds) {
+        if (!outputByNodeId.has(parentNodeId)) {
+          continue;
+        }
+        nodeInputs[parentNodeId] = outputByNodeId.get(parentNodeId);
       }
+
+      const startTime = Date.now();
 
       try {
-        const terminal = new Terminal();
-        const output = await terminal.execute({ command }, {});
+        const outputData = await plugin.execute(node.data, nodeInputs);
+        const endTime = Date.now();
+        outputByNodeId.set(node.id, outputData);
 
         results.push({
           nodeId: node.id,
           nodeType: node.type,
           status: 'success',
-          output: String(output?.stdout ?? ''),
+          output: toOutputText(outputData),
+          data: outputData,
+          startTime,
+          endTime,
         });
       } catch (error: unknown) {
+        const endTime = Date.now();
         results.push({
           nodeId: node.id,
           nodeType: node.type,
           status: 'failed',
           error: error instanceof Error ? error.message : 'Unknown terminal execution error',
+          startTime,
+          endTime,
         });
       }
     }

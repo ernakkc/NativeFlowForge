@@ -2,6 +2,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import useWorkflowStore from '../../store/workflow.store';
 import type {
   WorkflowDocument,
+  WorkflowRunRequest,
   TriggerRunRequestDetail,
   WorkflowNodeRunResult,
   WorkflowRunResponse,
@@ -13,7 +14,7 @@ type WorkflowSaveResult =
 
 type ElectronAPI = {
   saveWorkflow: (workflowData: WorkflowDocument) => Promise<WorkflowSaveResult>;
-  runWorkflow: (workflowData: WorkflowDocument, triggerNodeId: string) => Promise<WorkflowRunResponse>;
+  runWorkflow: (payload: WorkflowRunRequest) => Promise<WorkflowRunResponse>;
 };
 
 function ClickTriggerNode({ id, data }: NodeProps) {
@@ -79,7 +80,12 @@ function ClickTriggerNode({ id, data }: NodeProps) {
         }
       }
 
-      const execution = await electronAPI.runWorkflow(workflowDocument, id);
+      const executionPayload: WorkflowRunRequest = {
+        workflow: workflowDocument,
+        triggerNodeId: id,
+      };
+
+      const execution = await electronAPI.runWorkflow(executionPayload);
 
       if (!execution.ok) {
         updateNodeData(id, {
