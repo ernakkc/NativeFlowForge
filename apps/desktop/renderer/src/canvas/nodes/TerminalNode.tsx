@@ -20,7 +20,7 @@ function TerminalNode({ id, data }: NodeProps) {
       fontFamily: 'monospace',
       boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#555' }} />
       
       <div style={{ borderBottom: '1px solid #30363d', paddingBottom: '5px', marginBottom: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>&gt;_ Terminal Node</span>
@@ -76,7 +76,7 @@ function TerminalNode({ id, data }: NodeProps) {
         {lastError || lastOutput || 'Output burada gorunecek'}
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ background: '#555' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#555' }} />
     </div>
   );
 }

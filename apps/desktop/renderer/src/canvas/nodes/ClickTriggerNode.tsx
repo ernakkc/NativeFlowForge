@@ -204,7 +204,7 @@ function ClickTriggerNode({ id, data }: NodeProps) {
         <div>{summary}</div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ background: '#8b6f3d' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#8b6f3d' }} />
     </div>
   );
 }
