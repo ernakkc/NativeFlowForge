@@ -4,13 +4,15 @@ import '@xyflow/react/dist/style.css';
 
 import TerminalNode from './canvas/nodes/TerminalNode';
 import AIAnalyzerNode from './canvas/nodes/AIAnalyzerNode';
+import ClickTriggerNode from './canvas/nodes/ClickTriggerNode';
 import useWorkflowStore from './store/workflow.store'; 
 import Sidebar from './components/Sidebar';
-import type { WorkflowDocument, NodeType } from '@nff/shared/types';
+import type { WorkflowDocument } from '@nff/shared/types';
 
 const nodeTypes: NodeTypes = {
   terminal: TerminalNode,
   ai_analyzer: AIAnalyzerNode,
+  click_trigger: ClickTriggerNode,
 };
 
 function FlowCanvas() {
@@ -45,7 +47,7 @@ function FlowCanvas() {
 
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    const type = event.dataTransfer.getData('application/reactflow') as NodeType;
+    const type = event.dataTransfer.getData('application/reactflow');
     if (!type) return;
 
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -57,7 +59,12 @@ function FlowCanvas() {
       id: newNodeId,
       type,
       position,
-      data: { command: type === 'terminal' ? 'ls -la' : '' },
+      data:
+        type === 'terminal'
+          ? { command: 'ls -la' }
+          : type === 'click_trigger'
+            ? { status: 'idle', summary: 'Hazir' }
+            : {},
     };
 
     addNode(newNode);

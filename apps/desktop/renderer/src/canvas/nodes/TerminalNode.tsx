@@ -3,6 +3,8 @@ import useWorkflowStore from '../../store/workflow.store';
 
 function TerminalNode({ id, data }: NodeProps) {
   const { removeNode, updateNodeData } = useWorkflowStore();
+  const lastOutput = typeof data?.lastOutput === 'string' ? data.lastOutput : '';
+  const lastError = typeof data?.lastError === 'string' ? data.lastError : '';
 
   const handleDelete = () => {
     removeNode(id);
@@ -55,6 +57,23 @@ function TerminalNode({ id, data }: NodeProps) {
             outline: 'none'
           }} 
         />
+      </div>
+
+      <div
+        style={{
+          marginTop: '10px',
+          border: '1px solid #30363d',
+          borderRadius: '4px',
+          background: '#0b0f14',
+          padding: '6px',
+          minHeight: '44px',
+          fontSize: '11px',
+          color: lastError ? '#ff7b72' : '#8b949e',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word'
+        }}
+      >
+        {lastError || lastOutput || 'Output burada gorunecek'}
       </div>
 
       <Handle type="source" position={Position.Bottom} style={{ background: '#555' }} />

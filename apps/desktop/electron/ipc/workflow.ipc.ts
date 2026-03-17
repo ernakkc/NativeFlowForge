@@ -1,7 +1,8 @@
 import { app, ipcMain } from 'electron';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { WorkflowDocument } from '../../../../packages/shared/types';
+import type { WorkflowDocument, WorkflowRunRequest, WorkflowRunResponse } from '../../../../packages/shared/types';
+import { runWorkflowFromTrigger } from '../../../../packages/engine/executor';
 
 type WorkflowSaveResult =
   | { ok: true; filePath: string }
@@ -9,6 +10,7 @@ type WorkflowSaveResult =
 
 export function registerWorkflowIpcHandlers() {
   ipcMain.removeHandler('workflow:save');
+  ipcMain.removeHandler('workflow:run');
 
   ipcMain.handle('workflow:save', async (_event, workflowData: WorkflowDocument): Promise<WorkflowSaveResult> => {
     try {
@@ -32,5 +34,9 @@ export function registerWorkflowIpcHandlers() {
       const message = error instanceof Error ? error.message : 'Unknown workflow save error';
       return { ok: false, error: message };
     }
+  });
+
+  ipcMain.handle('workflow:run', async (_event, payload: WorkflowRunRequest): Promise<WorkflowRunResponse> => {
+    return runWorkflowFromTrigger(payload.workflow, payload.triggerNodeId);
   });
 }

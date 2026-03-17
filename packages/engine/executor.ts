@@ -1,25 +1,84 @@
-export class WorkflowExecutor {
-  private context: Record<string, any> = {}; // Node ID'lerine göre çıktıları saklar
+import { getReachableNodeOrder } from './dag';
+import type { WorkflowDocument, WorkflowNodeRunResult, WorkflowRunResponse } from '../shared/types';
+import { Terminal } from '../nodes/terminal';
 
-  async execute(workflowJson: any) {
-    const order = resolveExecutionOrder(workflowJson.nodes, workflowJson.edges);
-    
-    for (const nodeId of order) {
-      const nodeDef = workflowJson.nodes.find(n => n.id === nodeId);
-      const nodeInstance = NodeRegistry.get(nodeDef.type); // Örn: TerminalNode
-      
-      // Önceki node'ların çıktılarını topla ve bu node'a girdi olarak ver
-      const inputs = this.gatherInputs(nodeId, workflowJson.edges);
-      
+export async function runWorkflowFromTrigger(
+  workflow: WorkflowDocument,
+  triggerNodeId: string,
+): Promise<WorkflowRunResponse> {
+  try {
+    const orderedNodeIds = getReachableNodeOrder(triggerNodeId, workflow.nodes, workflow.edges);
+    const nodeById = new Map(workflow.nodes.map((node) => [node.id, node]));
+    const results: WorkflowNodeRunResult[] = [];
+
+    for (const nodeId of orderedNodeIds) {
+      const node = nodeById.get(nodeId);
+      if (!node) {
+        results.push({
+          nodeId,
+          nodeType: 'unknown',
+          status: 'skipped',
+          error: 'Node not found in workflow document',
+        });
+        continue;
+      }
+
+      if (node.type !== 'terminal') {
+        results.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          status: 'skipped',
+        });
+        continue;
+      }
+
+      const command = typeof node.data?.command === 'string' ? node.data.command.trim() : '';
+      if (!command) {
+        results.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          status: 'failed',
+          error: 'Command cannot be empty',
+        });
+        continue;
+      }
+
       try {
-         // Node'u çalıştır ve sonucunu context'e kaydet
-         const result = await nodeInstance.execute(nodeDef.config, inputs);
-         this.context[nodeId] = result;
-         
-         // UI'a "Bu node başarıyla çalıştı" bilgisini gönder (IPC üzerinden)
-      } catch (error) {
-         // Hata fırlat ve workflow'u durdur
+        const terminal = new Terminal();
+        const output = await terminal.execute({ command }, {});
+
+        results.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          status: 'success',
+          output: String(output?.stdout ?? ''),
+        });
+      } catch (error: unknown) {
+        results.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown terminal execution error',
+        });
       }
     }
+
+    const summary = {
+      total: results.length,
+      success: results.filter((item) => item.status === 'success').length,
+      failed: results.filter((item) => item.status === 'failed').length,
+      skipped: results.filter((item) => item.status === 'skipped').length,
+    };
+
+    return {
+      ok: true,
+      results,
+      summary,
+    };
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unknown workflow execution error',
+    };
   }
 }

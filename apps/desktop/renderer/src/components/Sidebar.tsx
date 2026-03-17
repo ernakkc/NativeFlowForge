@@ -1,8 +1,9 @@
 import React from 'react';
-import type { NodeType } from '@nff/shared/types';
+
+type SidebarNodeType = 'terminal' | 'ai_analyzer' | 'click_trigger';
 
 function Sidebar() {
-  const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
+  const onDragStart = (event: React.DragEvent, nodeType: SidebarNodeType) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
@@ -31,6 +32,14 @@ function Sidebar() {
         style={{ padding: '10px', border: '1px solid #58a6ff', borderRadius: '5px', background: '#0d1117', color: '#58a6ff', cursor: 'grab', fontWeight: 'bold' }}
       >
         🧠 AI Analyzer Node
+      </div>
+
+      <div
+        onDragStart={(event) => onDragStart(event, 'click_trigger')}
+        draggable
+        style={{ padding: '10px', border: '1px solid #f4b74d', borderRadius: '5px', background: '#0d1117', color: '#f4b74d', cursor: 'grab', fontWeight: 'bold' }}
+      >
+        ▶ Click Trigger Node
       </div>
     </aside>
   );

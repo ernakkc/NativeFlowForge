@@ -33,6 +33,45 @@ export interface WorkflowDocument {
   updatedAt: number;
 }
 
+export type TriggerRunRequestDetail = {
+  triggerNodeId: string;
+  triggerType: 'click';
+  requestedAt: number;
+  workflow: {
+    nodes: unknown[];
+    edges: unknown[];
+  };
+};
+
+export interface WorkflowRunRequest {
+  workflow: WorkflowDocument;
+  triggerNodeId: string;
+}
+
+export interface WorkflowNodeRunResult {
+  nodeId: string;
+  nodeType: string;
+  status: 'success' | 'failed' | 'skipped';
+  output?: string;
+  error?: string;
+}
+
+export type WorkflowRunResponse =
+  | {
+      ok: true;
+      results: WorkflowNodeRunResult[];
+      summary: {
+        total: number;
+        success: number;
+        failed: number;
+        skipped: number;
+      };
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
 // ==========================================
 // 2. ÇALIŞTIRMA (EXECUTION) VE STATE MODELLERİ
 // ==========================================

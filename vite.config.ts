@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron';
-import renderer from 'vite-plugin-electron-renderer';
 import path from 'node:path';
+
+const electronOutDir = path.resolve(__dirname, 'dist/electron');
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -17,17 +18,35 @@ export default defineConfig({
       {
         // Main Process giriş noktası
         entry: path.resolve(__dirname, 'apps/desktop/electron/main.ts'),
+        vite: {
+          root: path.resolve(__dirname),
+          build: {
+            outDir: electronOutDir,
+            emptyOutDir: false,
+          },
+        },
       },
       {
         // Preload Script giriş noktası
         entry: path.resolve(__dirname, 'apps/desktop/electron/preload.ts'),
+        vite: {
+          root: path.resolve(__dirname),
+          build: {
+            outDir: electronOutDir,
+            emptyOutDir: false,
+            rollupOptions: {
+              output: {
+                format: 'cjs',
+              },
+            },
+          },
+        },
         onstart(options) {
           // Preload script değiştiğinde sayfayı yeniden yükle
           options.reload();
         },
       },
     ]),
-    renderer(),
   ],
   resolve: {
     alias: {

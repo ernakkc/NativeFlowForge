@@ -1,7 +1,41 @@
-// Gelen React Flow JSON verisinden sadece bağlantıları (edges) okuyup
-// bağımlılık grafiğini çıkarır ve çalıştırılacak node'ların sırasını belirler.
-export function resolveExecutionOrder(nodes: any[], edges: any[]): string[] {
-  // 1. Hangi node'a kimler bağlı (Adjacency List oluşturma)
-  // 2. Gelen kenarı (in-degree) 0 olanları bul (İlk çalışacaklar)
-  // 3. Topolojik sıralama ile bir dizi döndür: ['node_1', 'node_2', 'node_3']
+import type { NFFEdge, NFFNode } from '../shared/types';
+
+export function getReachableNodeOrder(
+  triggerNodeId: string,
+  nodes: NFFNode[],
+  edges: NFFEdge[],
+): string[] {
+  const outgoing = new Map<string, string[]>();
+
+  for (const node of nodes) {
+    outgoing.set(node.id, []);
+  }
+
+  for (const edge of edges) {
+    const current = outgoing.get(edge.source) ?? [];
+    outgoing.set(edge.source, [...current, edge.target]);
+  }
+
+  const visited = new Set<string>([triggerNodeId]);
+  const queue: string[] = [triggerNodeId];
+  const orderedNodeIds: string[] = [];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift();
+    if (!currentId) {
+      continue;
+    }
+
+    for (const nextId of outgoing.get(currentId) ?? []) {
+      if (visited.has(nextId)) {
+        continue;
+      }
+
+      visited.add(nextId);
+      queue.push(nextId);
+      orderedNodeIds.push(nextId);
+    }
+  }
+
+  return orderedNodeIds;
 }
